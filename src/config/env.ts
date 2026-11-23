@@ -18,3 +18,21 @@ const Env = z.object({
 });
 
 const parsed = Env.safeParse(process.env);
+if(!parsed.success){
+  console.error(`Invalid environment: ${parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(';')}`);
+  process.exit(1);
+}
+const e = parsed.data;
+if(e.NODE_ENV === "production" && [e.SESSION_SECRET, e.FILLOUT_WEBHOOK_SECRET, e.DATABASE_URL].some(v => /change-me/i.test(v))){
+  console.error('Invalid environment: replace the change-me placeholders in .env');
+  process.exit(1);
+}
+
+export const config ={
+  isProd: e.NODE_ENV === 'production',port: e.PORT,baseUrl:e.BASE_URL.replace(/\/$/,''),
+  allowedOrigins: [new URL(e.BASE_URL).origin],
+  trustProxy: e.TRUST_PROXY,sessionSecret:e.SESSION_SECRET,databaseUrl:e.DATABASE_URL,
+  hca: {clientId:e.HCA_CLIENT_ID,clientSecret:e.HCA_CLIENT_SECRET,issuer:'https://auth.hackclub.com'},
+  fillout: {formUrl:e.FILLOUT_FORM_URL,secret:e.FILLOUT_WEBHOOK_SECRET},
+  adminIds: e.ADMIN_IDS,reviewerIds:e.REVIEWER_IDS,
+  smtpUrl: e.SMTP_URL||undefined,mailFrom:e.MAIL_FROM,slackToken:e.SLACK_BOT_TOKEN||undefined,logLevel:e.LOG_LEVEL,viteDevUrl:'http://localhost:5173',}as const;
