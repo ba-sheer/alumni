@@ -1,0 +1,20 @@
+import {z} from "zod";
+const list = z.string().default('').transform(s=>s.split(',').map(x=> x.trim()).filter(Boolean));
+const trustProxy = z.string().min(1)
+  .refine(v => /^\d+$/.test(v) || v.split(',').every(p => /^[0-9a-fA-F:.]+(\/\d{1,3})?$/.test(p.trim())), 'must be a hop count or a list of IPs/CIDRs')
+  .transform(v => (/^\d+$/.test(v) ? Number(v) : v.split(',').map(p => p.trim())));
+
+const Env = z.object({
+    NODE_ENV: z.enum(['development','test','production']).default('development'),
+    PORT:z.coerce.number().int().min(1).max(65535).default(3000),
+    BASE_URL:z.string().url(),TRUST_PROXY:trustProxy,
+    SESSION_SECRET:z.string().min(32),DATABASE_URL:z.string().url(),
+    HCA_CLIENT_ID:z.string().min(1),HCA_CLIENT_SECRET:z.string().min(1),
+    FILLOUT_FORM_URL:z.string().url(),FILLOUT_WEBHOOK_SECRET:z.string().min(16),
+    ADMIN_IDS: list,REVIEWER_IDS: list,
+    SMTP_URL: z.string().optional(),MAIL_FROM:z.string().default('Hack Club Alumni <no-reply@hackclub.com>'),
+    SLACK_BOT_TOKEN: z.string().optional(),
+    LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
+});
+
+const parsed = Env.safeParse(process.env);
