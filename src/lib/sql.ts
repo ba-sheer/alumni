@@ -1,0 +1,1 @@
+export const like =(s: string): string => `%${s.replace(/[%_\\]/g,'\\$&')}%`;
